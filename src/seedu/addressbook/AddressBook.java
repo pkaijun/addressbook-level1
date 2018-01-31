@@ -7,7 +7,6 @@ package seedu.addressbook;
  * ====================================================================
  */
 
-// HELLO HELLO I AM KAIJUN
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
