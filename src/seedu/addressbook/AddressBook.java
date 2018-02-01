@@ -87,6 +87,7 @@ public class AddressBook {
     // These are the prefix strings to define the data type of a command parameter
     private static final String PERSON_DATA_PREFIX_PHONE = "p/";
     private static final String PERSON_DATA_PREFIX_EMAIL = "e/";
+    private static final String PERSON_DATA_PREFIX_NAME = "n/";
 
     private static final String PERSON_STRING_REPRESENTATION = "%1$s " // name
                                                             + PERSON_DATA_PREFIX_PHONE + "%2$s " // phone
@@ -97,6 +98,9 @@ public class AddressBook {
                                                       + PERSON_DATA_PREFIX_PHONE + "PHONE_NUMBER "
                                                       + PERSON_DATA_PREFIX_EMAIL + "EMAIL";
     private static final String COMMAND_ADD_EXAMPLE = COMMAND_ADD_WORD + " John Doe p/98765432 e/johnd@gmail.com";
+
+    private static final String COMMAND_EDIT_WORD = "edit";
+    private static final String COMMAND_EDIT_DESC = "Edit the person's details according to its index number listed";
 
     private static final String COMMAND_FIND_WORD = "find";
     private static final String COMMAND_FIND_DESC = "Finds all persons whose names contain any of the specified "
@@ -365,6 +369,8 @@ public class AddressBook {
         switch (commandType) {
         case COMMAND_ADD_WORD:
             return executeAddPerson(commandArgs);
+        case COMMAND_EDIT_WORD:
+            return executeEditPerson(commandArgs);
         case COMMAND_FIND_WORD:
             return executeFindPersons(commandArgs);
         case COMMAND_LIST_WORD:
@@ -434,6 +440,61 @@ public class AddressBook {
     private static String getMessageForSuccessfulAddPerson(HashMap<Integer, String> addedPerson) {
         return String.format(MESSAGE_ADDED,
                 getNameFromPerson(addedPerson), getPhoneFromPerson(addedPerson), getEmailFromPerson(addedPerson));
+    }
+
+    /** Given the index number of the person, edit its details accordingly to the parameters given ***/
+    private static String executeEditPerson(String commandArgs) {
+        String[] splitArgs = commandArgs.split("\\s+"); // Split by whitespace
+        if(!isDeletePersonArgsValid(splitArgs[0])) return "TEK TEK";
+
+        final int editIndex = extractTargetIndexFromDeletePersonArgs(splitArgs[0]); // Get the index from command argument
+        return editPersonInAddressBook(decodeEditDetailsFromString(splitArgs), getPersonByLastVisibleIndex(editIndex)); // Edit Op
+    }
+
+    private static String editPersonInAddressBook(String[] details, HashMap<Integer, String> editPerson) {
+        HashMap<Integer, String> originalPerson = editPerson;
+        String name = details[0], email = details[1], phone = details[2];
+
+        /** Check if the field is required to be edited **/
+        if(!name.equals("")) {
+            if (isPersonNameValid(name)) editPerson.put(PERSON_DATA_INDEX_NAME, name);
+            else return "Error: Name is not valid!";
+        }
+
+        if(!email.equals("")) {
+            if (isPersonEmailValid(email)) editPerson.put(PERSON_DATA_INDEX_EMAIL, email);
+            else return "Error: Email is not valid!";
+        }
+
+        if(!phone.equals("")) {
+            if (isPersonPhoneValid(phone)) editPerson.put(PERSON_DATA_INDEX_PHONE, phone);
+            else return "Error: Phone number is not valid!";
+        }
+
+        System.out.println(name);
+        if(deletePersonFromAddressBook(originalPerson)) addPersonToAddressBook(editPerson);
+        else return "Error!";
+
+        return "Success!";
+    }
+
+    /** Get the corresponding details present in the parameters **/
+    private static String[] decodeEditDetailsFromString(String[] splitArgs) {
+        String name = "", email = "", phone = "";
+        String[] details = new String[3];
+        for(String arg : splitArgs) {
+            if(arg == splitArgs[0]) continue;
+
+            if(arg.contains(PERSON_DATA_PREFIX_EMAIL)) email = arg.replace(PERSON_DATA_PREFIX_EMAIL, "");
+            else if(arg.contains(PERSON_DATA_PREFIX_PHONE)) phone = arg.replace(PERSON_DATA_PREFIX_PHONE, "");
+            else if(arg.contains((PERSON_DATA_PREFIX_NAME))) name = arg.replace(PERSON_DATA_PREFIX_NAME, "");
+        }
+
+        details[0] = name;
+        details[1] = email;
+        details[2] = phone;
+
+        return details;
     }
 
     /**
