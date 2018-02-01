@@ -59,6 +59,7 @@ public class AddressBook {
      * =========================================================================
      */
     private static final String MESSAGE_ADDED = "New person added: %1$s, Phone: %2$s, Email: %3$s";
+    private static final String MESSAGE_EDITED = "Person edited: %1$s, Phone: %2$s, Email: %3$s";
     private static final String MESSAGE_ADDRESSBOOK_CLEARED = "Address book has been cleared!";
     private static final String MESSAGE_COMMAND_HELP = "%1$s: %2$s";
     private static final String MESSAGE_COMMAND_HELP_PARAMETERS = "\tParameters: %1$s";
@@ -100,7 +101,14 @@ public class AddressBook {
     private static final String COMMAND_ADD_EXAMPLE = COMMAND_ADD_WORD + " John Doe p/98765432 e/johnd@gmail.com";
 
     private static final String COMMAND_EDIT_WORD = "edit";
-    private static final String COMMAND_EDIT_DESC = "Edit the person's details according to its index number listed";
+    private static final String COMMAND_EDIT_DESC = "Edit the person's details according to its index number listed. " +
+            "Not all parameters are necessary, only indicate the parameters that is required to be edited. ";
+    private static final String COMMAND_EDIT_PARAMETERS = "INDEX " + PERSON_DATA_PREFIX_NAME + "NAME "
+                                                        + PERSON_DATA_PREFIX_EMAIL + "EMAIL "
+                                                        + PERSON_DATA_PREFIX_PHONE + "PHONE ";
+    private static final String COMMAND_EDIT_EXAMPLE = COMMAND_EDIT_WORD + " 2 "
+                                                        + PERSON_DATA_PREFIX_NAME + "John Doe Chi "
+                                                        + PERSON_DATA_PREFIX_PHONE + "91234567 ";
 
     private static final String COMMAND_FIND_WORD = "find";
     private static final String COMMAND_FIND_DESC = "Finds all persons whose names contain any of the specified "
@@ -445,12 +453,32 @@ public class AddressBook {
     /** Given the index number of the person, edit its details accordingly to the parameters given ***/
     private static String executeEditPerson(String commandArgs) {
         String[] splitArgs = commandArgs.split("\\s+"); // Split by whitespace
-        if(!isDeletePersonArgsValid(splitArgs[0])) return "TEK TEK";
 
-        final int editIndex = extractTargetIndexFromDeletePersonArgs(splitArgs[0]); // Get the index from command argument
+        // Check if the index is valid (e.g. non-empty)
+        if(!isDeletePersonArgsValid(splitArgs[0]))
+            return getMessageForInvalidCommandInput(COMMAND_EDIT_WORD, getUsageInfoForEditCommand());
+
+        // Index is valid (e.g. non empty), get the index (int) from command argument
+        final int editIndex = extractTargetIndexFromDeletePersonArgs(splitArgs[0]);
+
+        // Check if the index is found in the list
+        if (!isDisplayIndexValidForLastPersonListingView(editIndex))
+            return MESSAGE_INVALID_PERSON_DISPLAYED_INDEX;
+
+        // Index can be found in the list, check if there are parameters present
+        if(splitArgs.length == 1)
+            return getMessageForInvalidCommandInput(COMMAND_EDIT_WORD, getUsageInfoForEditCommand());
+
         return editPersonInAddressBook(decodeEditDetailsFromString(splitArgs), getPersonByLastVisibleIndex(editIndex)); // Edit Op
     }
 
+    /* Edit the person in the address book.
+     * Get the person details in a hashmap version.
+     * Replace the corresponding fields and delete the user then add the user again.
+     * @param details
+     * @param editPerson
+     * @return the success/usage statement
+     */
     private static String editPersonInAddressBook(String[] details, HashMap<Integer, String> editPerson) {
         HashMap<Integer, String> originalPerson = editPerson;
         String name = details[0], email = details[1], phone = details[2];
@@ -458,24 +486,24 @@ public class AddressBook {
         /** Check if the field is required to be edited **/
         if(!name.equals("")) {
             if (isPersonNameValid(name)) editPerson.put(PERSON_DATA_INDEX_NAME, name);
-            else return "Error: Name is not valid!";
+            else return getMessageForInvalidCommandInput(COMMAND_EDIT_WORD, getUsageInfoForEditCommand());
         }
 
         if(!email.equals("")) {
             if (isPersonEmailValid(email)) editPerson.put(PERSON_DATA_INDEX_EMAIL, email);
-            else return "Error: Email is not valid!";
+            else return getMessageForInvalidCommandInput(COMMAND_EDIT_WORD, getUsageInfoForEditCommand());
         }
 
         if(!phone.equals("")) {
             if (isPersonPhoneValid(phone)) editPerson.put(PERSON_DATA_INDEX_PHONE, phone);
-            else return "Error: Phone number is not valid!";
+            else return getMessageForInvalidCommandInput(COMMAND_EDIT_WORD, getUsageInfoForEditCommand());
         }
 
         System.out.println(name);
         if(deletePersonFromAddressBook(originalPerson)) addPersonToAddressBook(editPerson);
-        else return "Error!";
+        else getMessageForInvalidCommandInput(COMMAND_EDIT_WORD, getUsageInfoForEditCommand());
 
-        return "Success!";
+        return getMessageForSuccessfulEditPerson(editPerson);
     }
 
     /** Get the corresponding details present in the parameters **/
@@ -495,6 +523,11 @@ public class AddressBook {
         details[2] = phone;
 
         return details;
+    }
+
+    private static String getMessageForSuccessfulEditPerson(HashMap<Integer, String> editPerson) {
+        return String.format(MESSAGE_EDITED,
+                getNameFromPerson(editPerson), getPhoneFromPerson(editPerson), getEmailFromPerson(editPerson));
     }
 
     /**
@@ -1152,6 +1185,12 @@ public class AddressBook {
         return String.format(MESSAGE_COMMAND_HELP, COMMAND_ADD_WORD, COMMAND_ADD_DESC) + LS
                 + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_ADD_PARAMETERS) + LS
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_ADD_EXAMPLE) + LS;
+    }
+
+    private static String getUsageInfoForEditCommand() {
+        return String.format(MESSAGE_COMMAND_HELP, COMMAND_EDIT_WORD, COMMAND_EDIT_DESC) + LS
+                + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_EDIT_PARAMETERS) + LS
+                + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EDIT_EXAMPLE) + LS;
     }
 
     /** Returns the string for showing 'find' command usage instruction */
